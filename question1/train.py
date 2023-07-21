@@ -4,8 +4,7 @@ from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
-# Assuming you have functions to obtain the authorization token and fetch train data
-def get_authorization_token():
+def get_auth_token():
     url = 'http://20.244.56.144/train/auth'
     registration_data = {
     "companyName":"Train Central",
@@ -15,70 +14,56 @@ def get_authorization_token():
     "rollNo":"2005090",
     "clientSecret":"JUlvROmQBJTVsrIg"
     }
-
+    
     response = requests.post(url, json=registration_data)
 
     if response.status_code == 200:
-        # Registration successful
         registration_response = response.json()
-        print("Registration successful!")
+        print("registration successfull")
     else:
-        print("Registration failed. Status code:", response.status_code)
-        print("Response:", response.text)
+        print("Registration failed")
+    
     token = registration_response["access_token"]
     return token
-    pass
 
-def get_real_time_train_data(authorization_token):
-        # Implement the logic to fetch details for a specific train using the token
-    headers = {
-        'Authorization': f'Bearer {authorization_token}'
-    }
-    response = requests.get('http://20.244.56.144/train/trains', headers=headers)
+
+def get_realtime_traindata(auth_token):
     
+    headers = { 'Authorization': f'Bearer {auth_token}'}
+
+    response = requests.get('http://20.244.56.144/train/trains', headers=headers)
+
     if response.status_code == 200:
-        train_data = response.json()
-        return train_data
+        data = response.json()
+        return data
     else:
-        # Handle any errors that might occur during the API request
-        print(f"Error: {response.status_code}, {response.text}")
-        return None
+        print("Error")
 
-    pass
+def get_details(train_id, auth_token):
+    auth_token = get_auth_token()
+    if not auth_token:
+        return "Failed to get auth token,"
 
-def get_train_details(train_id, authorization_token):
-    # Obtain the authorization token to access the train data
-    authorization_token = get_authorization_token()
-    if not authorization_token:
-        return "Failed to obtain authorization token.", 401
-
-    # Fetch the real-time train details for the specific train using the authorization token
-    train_details = get_train_details(train_id, authorization_token)
+    train_details = get_details(train_id, auth_token)
     if not train_details:
-        return "Failed to fetch train details.", 500
+        return "Failed to get train details"
 
-    # You can format and return the train_details JSON data as required
     response = jsonify(train_details)
     return response
-    pass
 
 @app.route('/trains/schedule', methods=['GET'])
-def get_trains_schedule():
-    # Obtain the authorization token to access the train data
-    authorization_token = get_authorization_token()
+def get_schedule():
+    authorization_token = get_auth_token()
     if not authorization_token:
         return "Failed to obtain authorization token.", 401
 
-    # Fetch the real-time train data using the authorization token
-    train_data = get_real_time_train_data(authorization_token)
+    train_data = get_realtime_traindata(authorization_token)
     if not train_data:
         return "Failed to fetch train data.", 500
 
-    # Calculate the time window of the next 12 hours from the current time
     current_time = datetime.now()
     twelve_hours_from_now = current_time + timedelta(hours=12)
 
-    # Filter trains departing in the next 30 minutes or within the next 12 hours (including delayed departures)
     def is_valid_departure_time(train):
         departure_time = datetime(
             current_time.year,
@@ -91,7 +76,6 @@ def get_trains_schedule():
 
     trains_to_display = [train for train in train_data if 'departureTime' in train and is_valid_departure_time(train)]
 
-    # Sort the trains as per the specified criteria
     def sorting_key(train):
         departure_time = datetime(
             current_time.year,
@@ -103,7 +87,7 @@ def get_trains_schedule():
         return (
             train['price']['sleeper'],
             -train['seatsAvailable']['sleeper'],
-            -departure_time.timestamp()  # Convert to timestamp for descending order of departure time
+            -departure_time.timestamp() 
         )
 
     sorted_trains = sorted(trains_to_display, key=sorting_key)
@@ -131,6 +115,7 @@ def get_trains_schedule():
 
     response = jsonify(trains_schedule)
     return response
+
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -12,7 +12,6 @@ registration_data = {
 response = requests.post(url, json=registration_data)
 
 if response.status_code == 200:
-    # Registration successful
     registration_response = response.json()
     print("Registration successful!")
     print("Company Name:", registration_response["companyName"])
