@@ -1,8 +1,10 @@
 from flask import Flask, jsonify
 import requests
 from datetime import datetime, timedelta
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 def get_auth_token():
     url = 'http://20.244.56.144/train/auth'
